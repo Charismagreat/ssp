@@ -113,25 +113,37 @@ export default function DashboardPage() {
   // 데이터 페칭 및 가공
   const fetchData = async () => {
     try {
-      const res = await fetch('/api/transactions');
-      if (!res.ok) throw new Error('Data fetch failed');
-      const data: Transaction[] = await res.json();
-      const sortedData = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setAllTransactions(sortedData);
+      // 1. 거래 내역 가져오기
+      const transRes = await fetch('/api/transactions');
+      if (!transRes.ok) throw new Error('Data fetch failed');
+      const transData: Transaction[] = await transRes.json();
+      const sortedTrans = [...transData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setAllTransactions(sortedTrans);
+
+      // 2. 설정 데이터 가져오기 (서버 저장 방식 적용)
+      let settings = { cardSettings: [], monthlyUsageData: [] };
+      try {
+        const settingsRes = await fetch('/api/settings');
+        if (settingsRes.ok) {
+          settings = await settingsRes.json();
+        }
+      } catch (err) {
+        console.warn('Failed to fetch settings from server, using empty defaults', err);
+      }
 
       // 조회 시점 기록
       const now = new Date();
       const timeStr = `${now.getFullYear()}년 ${String(now.getMonth() + 1).padStart(2, '0')}월 ${String(now.getDate()).padStart(2, '0')}일 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
       setLastUpdated(timeStr);
 
-      // 실시간 데이터 기반 통계 계산
-      calculateRealStats(sortedData);
+      // 실시간 데이터 및 설정 기반 통계 계산
+      calculateRealStats(sortedTrans, settings.cardSettings, settings.monthlyUsageData);
     } catch (err) {
-      console.error('Failed to fetch transactions:', err);
+      console.error('Failed to fetch data:', err);
     }
   };
 
-  const calculateRealStats = (transactions: Transaction[]) => {
+  const calculateRealStats = (transactions: Transaction[], cardSettings: CardSetting[], monthlyRecords: MonthlyUsage[]) => {
     const now = new Date();
     const curMonth = now.getMonth();
     const curYear = now.getFullYear();
@@ -169,11 +181,6 @@ export default function DashboardPage() {
         return d.getFullYear() === curYear;
       })
       .reduce((acc, t) => acc + parseAmt(t.amount), 0);
-
-    // 설정 데이터 로드 (전년 동월 및 예산 비교용)
-    const savedMonthly = localStorage.getItem('monthlyUsageData');
-    const savedCards = localStorage.getItem('cardSettings');
-    let monthlyRecords: MonthlyUsage[] = savedMonthly ? JSON.parse(savedMonthly) : [];
 
     // 1. 실시간 거래 데이터 월별 집계 (2026년 이후 데이터 포함)
     const realMonthlyMap = transactions.reduce((acc: any, t) => {
@@ -228,12 +235,11 @@ export default function DashboardPage() {
     const momPerc = prevMonthTotal !== 0 ? (momDiff / prevMonthTotal) * 100 : 0;
 
     let totalBudget = 50000000;
-    if (savedCards) {
-      const cards: CardSetting[] = JSON.parse(savedCards);
-      totalBudget = cards.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+    if (cardSettings && cardSettings.length > 0) {
+      totalBudget = cardSettings.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
       setTotalPrevAmount(`₩${totalBudget.toLocaleString()}`);
     }
-    // 예산 사용율: 올해 총 사용액 / 연간 총 예산
+    // 예산 사용율: 올해 총 사용액 / 연간 총 예산 (예산은 월별로 설정된 것이므로 연간은 *12로 볼 수도 있지만 현재 로직 유지)
     const budgetUsagePerc = totalBudget !== 0 ? (curYearTotal / totalBudget) * 100 : 0;
 
     setStats([

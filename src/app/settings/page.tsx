@@ -19,7 +19,7 @@ interface MonthlyUsage {
 
 /**
  * 설정 페이지
- * 1. 카드별 기본 설정
+ * 1. 카드사용한도 설정
  * 2. 연도 및 월별 카드 사용액 설정 (대시보드 기초 데이터)
  */
 export default function SettingsPage() {
@@ -29,29 +29,40 @@ export default function SettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        // 기존 카드 설정 로드
-        const savedCards = localStorage.getItem('cardSettings');
-        if (savedCards) {
-            setCards(JSON.parse(savedCards));
-        } else {
-            setCards([{ id: '1', name: '', amount: '' }]);
-        }
+        // 서버에서 설정 데이터 로드
+        const loadSettings = async () => {
+            try {
+                const res = await fetch('/api/settings');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.cardSettings && data.cardSettings.length > 0) {
+                        setCards(data.cardSettings);
+                    } else {
+                        setCards([{ id: '1', name: '', amount: '' }]);
+                    }
 
-        // 월별 신규 사용액 데이터 로드
-        const savedMonthly = localStorage.getItem('monthlyUsageData');
-        if (savedMonthly) {
-            setMonthlyUsage(JSON.parse(savedMonthly));
-        } else {
-            // 기본값: 최근 13개월 정도 미리 생성
-            const initial: MonthlyUsage[] = [];
-            const now = new Date();
-            for (let i = 0; i < 14; i++) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const ym = `${String(d.getFullYear()).slice(-2)}.${String(d.getMonth() + 1).padStart(2, '0')}`;
-                initial.push({ id: `m-${i}`, yearMonth: ym, amount: '' });
+                    if (data.monthlyUsageData && data.monthlyUsageData.length > 0) {
+                        setMonthlyUsage(data.monthlyUsageData);
+                    } else {
+                        // 기본값 생성 로직 유지
+                        const initial: MonthlyUsage[] = [];
+                        const now = new Date();
+                        for (let i = 0; i < 14; i++) {
+                            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                            const ym = `${String(d.getFullYear()).slice(-2)}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            initial.push({ id: `m-${i}`, yearMonth: ym, amount: '' });
+                        }
+                        setMonthlyUsage(initial);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load settings from server:', err);
+                // 에러 시 로컬 스토리지 폴백 (선택 사항)
+                setCards([{ id: '1', name: '', amount: '' }]);
             }
-            setMonthlyUsage(initial);
-        }
+        };
+
+        loadSettings();
     }, []);
 
     const handleAddCard = () => {
@@ -88,18 +99,36 @@ export default function SettingsPage() {
         setMonthlyUsage(monthlyUsage.filter(m => m.id !== id));
     };
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!cards || !monthlyUsage) return;
         setIsSaving(true);
 
-        localStorage.setItem('cardSettings', JSON.stringify(cards));
-        localStorage.setItem('monthlyUsageData', JSON.stringify(monthlyUsage));
+        try {
+            // 서버에 설정 저장
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cardSettings: cards,
+                    monthlyUsageData: monthlyUsage
+                })
+            });
 
-        setTimeout(() => {
+            if (res.ok) {
+                // 성공 시 로컬 스토리지에도 백업 (선택 사항)
+                localStorage.setItem('cardSettings', JSON.stringify(cards));
+                localStorage.setItem('monthlyUsageData', JSON.stringify(monthlyUsage));
+                router.push('/');
+            } else {
+                alert('설정 저장에 실패했습니다.');
+            }
+        } catch (err) {
+            console.error('Error saving settings:', err);
+            alert('서버 연결 오류가 발생했습니다.');
+        } finally {
             setIsSaving(false);
-            router.push('/');
-        }, 500);
+        }
     };
 
     if (!cards || !monthlyUsage) {
@@ -125,9 +154,9 @@ export default function SettingsPage() {
 
             <div className="settings-container" style={{ maxWidth: '800px' }}>
                 <form onSubmit={handleSave}>
-                    {/* 카드별 기본 설정 섹션 */}
+                    {/* 카드사용한도 설정 섹션 */}
                     <div className="settings-section-title">
-                        <span>카드별 기본 설정</span>
+                        <span>카드사용한도 설정</span>
                         <button type="button" className="btn-outline" onClick={handleAddCard} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '13px' }}>
                             <Plus size={14} /> 카드 추가
                         </button>
