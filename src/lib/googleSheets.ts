@@ -2,7 +2,7 @@
  * Google Spreadsheet 데이터를 가져오고 파싱하는 유틸리티
  */
 export async function getTransactionsFromSheet() {
-    const SPREADSHEET_ID = '12y8j12kFcSyUFYod2NNdXxTyg1iball_aDMeS-sZTzU';
+    const SPREADSHEET_ID = '1LcEGIM-3xfQPPIazyj1VNQQfxNShsK3toJkmUXCVYcg';
     const SHEET_NAME = encodeURIComponent('승인내역');
 
     // CSV 형태로 내보내기 URL (시트가 '링크가 있는 모든 사용자에게 공개'되어 있어야 합니다)
