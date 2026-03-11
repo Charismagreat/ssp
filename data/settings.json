@@ -1,0 +1,71 @@
+{
+  "cardSettings": [
+    {
+      "id": "1",
+      "name": "비씨카드",
+      "amount": "50000000"
+    }
+  ],
+  "monthlyUsageData": [
+    {
+      "id": "m-2",
+      "yearMonth": "25.12",
+      "amount": "10000000"
+    },
+    {
+      "id": "m-3",
+      "yearMonth": "25.11",
+      "amount": "9000000"
+    },
+    {
+      "id": "m-4",
+      "yearMonth": "25.10",
+      "amount": "8000000"
+    },
+    {
+      "id": "m-5",
+      "yearMonth": "25.09",
+      "amount": "7000000"
+    },
+    {
+      "id": "m-6",
+      "yearMonth": "25.08",
+      "amount": "6000000"
+    },
+    {
+      "id": "m-7",
+      "yearMonth": "25.07",
+      "amount": "5000000"
+    },
+    {
+      "id": "m-8",
+      "yearMonth": "25.06",
+      "amount": "4500000"
+    },
+    {
+      "id": "m-9",
+      "yearMonth": "25.05",
+      "amount": "4000000"
+    },
+    {
+      "id": "m-10",
+      "yearMonth": "25.04",
+      "amount": "5500000"
+    },
+    {
+      "id": "m-11",
+      "yearMonth": "25.03",
+      "amount": "6500000"
+    },
+    {
+      "id": "m-12",
+      "yearMonth": "25.02",
+      "amount": "7500000"
+    },
+    {
+      "id": "m-13",
+      "yearMonth": "25.01",
+      "amount": "8499999"
+    }
+  ]
+}

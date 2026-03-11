@@ -114,10 +114,14 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       // 1. 거래 내역 가져오기
-      const transRes = await fetch('/api/transactions');
+      const transRes = await fetch('/api/transactions', { cache: 'no-store' });
       if (!transRes.ok) throw new Error('Data fetch failed');
       const transData: Transaction[] = await transRes.json();
-      const sortedTrans = [...transData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const sortedTrans = [...transData].sort((a, b) => {
+        const dateA = new Date(a.date.replace(/\./g, '-')).getTime();
+        const dateB = new Date(b.date.replace(/\./g, '-')).getTime();
+        return dateB - dateA;
+      });
       setAllTransactions(sortedTrans);
 
       // 2. 설정 데이터 가져오기 (서버 저장 방식 적용)
@@ -239,8 +243,15 @@ export default function DashboardPage() {
       totalBudget = cardSettings.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
       setTotalPrevAmount(`₩${totalBudget.toLocaleString()}`);
     }
-    // 예산 사용율: 올해 총 사용액 / 연간 총 예산 (예산은 월별로 설정된 것이므로 연간은 *12로 볼 수도 있지만 현재 로직 유지)
+    // 예산 사용율: 올해 총 사용액 / 연간 총 예산
     const budgetUsagePerc = totalBudget !== 0 ? (curYearTotal / totalBudget) * 100 : 0;
+
+    // 전월의 전년 동월 대비 계산 (작년 이맘때와의 비교)
+    const prevMonthLastYearYM = `${String(prevYear - 1).slice(-2)}.${String(prevMonth + 1).padStart(2, '0')}`;
+    const prevMonthLastYearData = monthlyRecords.find(d => d.yearMonth === prevMonthLastYearYM);
+    const prevMonthLastYearAmount = prevMonthLastYearData ? Number(prevMonthLastYearData.amount) : 0;
+    const prevYoYDiff = prevMonthTotal - prevMonthLastYearAmount;
+    const prevYoYPerc = prevMonthLastYearAmount !== 0 ? (prevYoYDiff / prevMonthLastYearAmount) * 100 : 0;
 
     setStats([
       {
@@ -262,10 +273,10 @@ export default function DashboardPage() {
         isUp: true
       },
       {
-        title: '전년 동월 대비',
-        value: `${yoyDiff >= 0 ? '+' : '-'}₩${Math.abs(yoyDiff).toLocaleString()}`,
-        trend: `${yoyDiff >= 0 ? '↑' : '↓'} ${Math.abs(yoyPerc).toFixed(1)}%`,
-        isUp: yoyDiff >= 0
+        title: '전월 Vs 전년 동월 사용액',
+        value: `${prevYoYDiff >= 0 ? '+' : '-'}₩${Math.abs(prevYoYDiff).toLocaleString()}`,
+        trend: `${prevYoYDiff >= 0 ? '+' : '-'} ${Math.abs(prevYoYPerc).toFixed(1)}%`,
+        isUp: prevYoYDiff >= 0
       },
     ]);
   };
@@ -273,7 +284,7 @@ export default function DashboardPage() {
   useEffect(() => {
     setIsMounted(true);
     fetchData();
-    const interval = setInterval(fetchData, 3600000);
+    const interval = setInterval(fetchData, 300000); // 5분마다 데이터 갱신 (기존 1시간에서 단축)
     return () => clearInterval(interval);
   }, []);
 

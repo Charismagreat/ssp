@@ -2,14 +2,14 @@
  * Google Spreadsheet 데이터를 가져오고 파싱하는 유틸리티
  */
 export async function getTransactionsFromSheet() {
-    const SPREADSHEET_ID = '1LcEGIM-3xfQPPIazyj1VNQQfxNShsK3toJkmUXCVYcg';
+    const SPREADSHEET_ID = '1LcEGIM-3xfQPPIazyj1VNQQfxNShsK3toJkmUXCVYcg';//
     const SHEET_NAME = encodeURIComponent('승인내역');
 
     // CSV 형태로 내보내기 URL (시트가 '링크가 있는 모든 사용자에게 공개'되어 있어야 합니다)
     const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
 
     try {
-        const response = await fetch(url, { next: { revalidate: 3600 } }); // 1시간 캐싱
+        const response = await fetch(url, { next: { revalidate: 60 } }); // 1분 캐싱 (기존 1시간에서 단축)
         if (!response.ok) throw new Error('Failed to fetch spreadsheet data');
 
         const csvData = await response.text();

@@ -14,7 +14,7 @@ export async function getTransactionsFromGAS() {
     try {
         // GAS URL은 리다이렉션이 발생하므로 fetch 옵션 확인
         const response = await fetch(GAS_WEBAPP_URL, {
-            next: { revalidate: 3600 },
+            next: { revalidate: 60 },
             method: 'GET'
         });
 
